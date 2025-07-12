@@ -1333,8 +1333,8 @@ void PhysXInterface::pullMotorStates(rai::Configuration& C, arr& qDot) { NICO }
 void PhysXInterface::postAddObject(rai::Frame* f) { NICO }
 
 void PhysXInterface::changeObjectType(rai::Frame* f, int _type) { NICO }
-void PhysXInterface::addJoint(rai::Joint* j) { NICO }
-void PhysXInterface::removeJoint(rai::Joint* j) { NICO }
+void PhysXInterface::addRigidJoint(rai::Frame* from, rai::Frame* to) { NICO }
+void PhysXInterface::removeJoint(const rai::Frame* from, const rai::Frame* to) { NICO }
 void PhysXInterface::setGravity(float grav) { NICO }
 void PhysXInterface::disableGravity(rai::Frame* f, bool disable) { NICO }
 void PhysXInterface::addForce(rai::Vector& force, rai::Frame* b) { NICO }
