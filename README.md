@@ -35,62 +35,25 @@ The there is no proper documentation of the full rai code. I recommend starting 
 * The [Wiki page](../../wiki) contains an older introduction to KOMO. There is also an older KOMO tech report on arxiv: <https://arxiv.org/abs/1407.0414>
 * Eventually, the [test main.cpp files](test/) help really understanding the use of the C++ code base.
 
-## Quick Start
+## Building (using nix)
 
-```
+```sh
 git clone git@github.com:MarcToussaint/rai.git
-# OR, if you don't have a github account:
-git clone https://github.com/MarcToussaint/rai.git
 cd rai
-
-# The following two commands depend on the config.mk -- see below
-make -j1 printUbuntuAll    # for your information: what the next step will install
-make -j1 installUbuntuAll APTGETYES=--yes # calls sudo apt-get install; remove 'yes' to allow interrupting
-
-make -j4
-make -j4 tests bin
-make runTests      # compile and run the essential tests
+nix develop
+cmake -B build
+cmake --build build -j$(nproc --ignore=2)
+cmake --install build
 ```
 
-## Dependencies
+With tests
 
-To change the dependencies edit the `config.mk` in `_make`:
-When a flag is set =0, this forces that this package is not
-used. Otherwise (when set =0 is commented), a sub-folder Makefile may
-set it equal to 1 and links to this package. After this you definitely
-need to recompile some components. In doubt
-```
-make cleanAll
-make -j4
+```sh
+cmake -DBUILD_TESTS=ON -B build
 ```
 
-If you pull an update, it might help to create Makefile.dep files
-throught the project using
+With Physx
+
+```sh
+cmake -DUSE_PHYSX=ON -B build
 ```
-make dependAll
-make -j4
-```
-
-## local lib install
-
-      export MAKEFLAGS="-j $(command nproc --ignore 2)"
-      #apt update
-      #apt install wget
-
-      wget https://github.com/MarcToussaint/rai/raw/refs/heads/marc/_make/install.sh; chmod a+x install.sh
-      ./install.sh ubuntu-rai
-      ./install.sh libccd
-      ./install.sh fcl
-      ./install.sh libann
-      ./install.sh rai
-  
-      #build tests
-      cmake -DBUILD_TESTS=ON git/rai -B git/rai/build 
-      cmake --build git/rai/build 
-
-      #build with physx
-      ./install.sh physx
-      cmake -DUSE_PHYSX=ON git/rai -B git/rai/build 
-      cmake --build git/rai/build 
-
-
