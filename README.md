@@ -35,62 +35,51 @@ The there is no proper documentation of the full rai code. I recommend starting 
 * The [Wiki page](../../wiki) contains an older introduction to KOMO. There is also an older KOMO tech report on arxiv: <https://arxiv.org/abs/1407.0414>
 * Eventually, the [test main.cpp files](test/) help really understanding the use of the C++ code base.
 
-## Quick Start
+## Building
 
-```
-git clone git@github.com:MarcToussaint/rai.git
-# OR, if you don't have a github account:
-git clone https://github.com/MarcToussaint/rai.git
-cd rai
-
-# The following two commands depend on the config.mk -- see below
-make -j1 printUbuntuAll    # for your information: what the next step will install
-make -j1 installUbuntuAll APTGETYES=--yes # calls sudo apt-get install; remove 'yes' to allow interrupting
-
-make -j4
-make -j4 tests bin
-make runTests      # compile and run the essential tests
+```sh
+git clone git@github.com:squarra/rai.git
+cmake -B build
+cmake --build build -j 6
 ```
 
-## Dependencies
+You might run into issues with pgkconfig not finding qhull. Clone qhull like it's described in the `install.sh` script and create `/home/pierre/.local/lib/pkgconfig/qhull.pc` with this content: 
 
-To change the dependencies edit the `config.mk` in `_make`:
-When a flag is set =0, this forces that this package is not
-used. Otherwise (when set =0 is commented), a sub-folder Makefile may
-set it equal to 1 and links to this package. After this you definitely
-need to recompile some components. In doubt
-```
-make cleanAll
-make -j4
-```
+```pc
+prefix=/home/pierre/.local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
 
-If you pull an update, it might help to create Makefile.dep files
-throught the project using
-```
-make dependAll
-make -j4
+Name: qhull
+Description: Qhull library for convex hulls
+Version: 7.3.2
+Libs: -L${libdir} -lqhullstatic
+Cflags: -I${includedir}/libqhull
 ```
 
-## local lib install
+## Running tests
 
-      export MAKEFLAGS="-j $(command nproc --ignore 2)"
-      #apt update
-      #apt install wget
+- gnuplot is required (sudo dnf install gnuplot)
+- rai-robotModels is required next to where you cloned this repo
+- shapenet data is going to be required for the shapenet tests
+- there are some hardcoded paths to other repos which I could not find online
 
-      wget https://github.com/MarcToussaint/rai/raw/refs/heads/marc/_make/install.sh; chmod a+x install.sh
-      ./install.sh ubuntu-rai
-      ./install.sh libccd
-      ./install.sh fcl
-      ./install.sh libann
-      ./install.sh rai
-  
-      #build tests
-      cmake -DBUILD_TESTS=ON git/rai -B git/rai/build 
-      cmake --build git/rai/build 
+```sh
+cmake -B build -DBUILD_TESTS=ON
+cmake --build build -j 6
+cd build
+ctest
+```
 
-      #build with physx
-      ./install.sh physx
-      cmake -DUSE_PHYSX=ON git/rai -B git/rai/build 
-      cmake --build git/rai/build 
+To run a specific test
 
+```sh
+ctest -R test_name
+```
 
+On Fedora I have to change my XDG_SESSION_TYPE
+
+```sh
+XDG_SESSION_TYPE=x11 ctest
+```
