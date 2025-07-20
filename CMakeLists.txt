@@ -15,6 +15,7 @@ option(USE_PHYSX "link to physx" ON)
 option(USE_H5 "link to h5 library" ON)
 option(USE_FREETYPE "link to freetype2 library" ON)
 option(BUILD_TESTS "build tests" OFF)
+option(BUILD_PYBIND "Build the Pybind11 Python bindings" OFF)
 
 ## compile options
 add_compile_options(
@@ -266,6 +267,17 @@ endif()
 ################################################################################
 
 message(STATUS "[rai] installing headers and lib in " ${CMAKE_INSTALL_PREFIX}/include/rai|lib)
+
+if(BUILD_PYBIND)
+  set(PYBIND11_FINDPYTHON ON)
+  find_package(pybind11 CONFIG REQUIRED)
+  file(GLOB SRC_PYTHON src/ry/*.cpp)
+  pybind11_add_module(rai_python SHARED ${SRC_PYTHON})
+  set_target_properties(rai_python PROPERTIES OUTPUT_NAME "rai")
+  target_link_libraries(rai_python PRIVATE rai)
+  target_compile_definitions(rai_python PUBLIC RAI_PYBIND)
+  install(TARGETS rai_python DESTINATION lib/python)
+endif()
 
 install(
   DIRECTORY src/

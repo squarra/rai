@@ -79,42 +79,18 @@
       };
 
       raiBuildInputs = with pkgs; [
-        cmake
-        pkg-config
-        gcc
-        eigen
-        qhull
-        libf2c
-        glfw
-        glew
-        freeglut
-        jsoncpp
-        assimp
-        liblapack
-        freetype
-        hdf5
-        xorg.libX11
-        glm
-        libccd
-        yaml-cpp
-        fcl
-        ann
+        cmake pkg-config gcc eigen qhull libf2c glfw glew freeglut jsoncpp
+        assimp liblapack freetype hdf5 xorg.libX11 xorg.libXi glm libccd yaml-cpp fcl ann
+        python3Packages.pybind11 gnuplot
       ];
     in {
-        devShells.${system}.default = pkgs.mkShell {
-          buildInputs = raiBuildInputs;
-        };
-
-        packages.${system}.default = pkgs.stdenv.mkDerivation {
-          pname = "rai";
-          version = "0.1.0";
-          src = self;
-          nativeBuildInputs = raiBuildInputs;
-          NIX_CFLAGS_COMPILE = "-I${pkgs.eigen}/include/eigen3";
-          cmakeFlags = [
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DUSE_PHYSX=OFF"
-          ];
-        };
+      packages.${system}.default = pkgs.stdenv.mkDerivation {
+        pname = "rai";
+        version = "0.1.0";
+        src = self;
+        nativeBuildInputs = raiBuildInputs;
+        NIX_CFLAGS_COMPILE = "-I${pkgs.eigen}/include/eigen3";
+        cmakeFlags = [ "-DCMAKE_BUILD_TYPE=Release" "-DUSE_PHYSX=OFF" "-DBUILD_PYBIND=ON" ];
+      };
     };
 }
