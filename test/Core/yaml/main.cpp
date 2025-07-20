@@ -4,7 +4,7 @@
 //===========================================================================
 
 void testRead(){
-  rai::String file = rai::getParameter<rai::String>("gfile");
+  rai::String file = rai::raiPath("../rai-robotModels/panda/panda.g");
   YAML::Node config = YAML::LoadFile(file.p);
   cout <<config;
 
@@ -50,7 +50,7 @@ void graph2yamlNode(Node* n, YAML::Node& root){
 //===========================================================================
 
 void testWrite(){
-  rai::Graph G(rai::getParameter<rai::String>("gfile"));
+  rai::Graph G(rai::raiPath("../rai-robotModels/panda/panda.g"));
 
   G.checkUniqueKeys(true);
 
