@@ -12,35 +12,29 @@ option(USE_FREETYPE "link to freetype2 library" ON)
 option(USE_OPENCV "link to opencv" OFF)
 option(BUILD_TESTS "build tests" OFF)
 
-# compile options
-add_compile_options(
-  -O3
-  -g
-  -Wall
-  -Wpedantic
-  $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>
-  $<$<COMPILE_LANGUAGE:CXX>:-Wno-terminate>
-  $<$<COMPILE_LANGUAGE:CXX>:-Wno-array-bounds>)
+# --- Find Dependencies ---
+find_package(PkgConfig REQUIRED)
+find_package(GLUT REQUIRED)
+find_package(Qhull REQUIRED)
 
-add_definitions(
-  -DRAI_ROOT_PATH=\"${CMAKE_SOURCE_DIR}\"
-  -DRAI_X11
-  -DRAI_LAPACK
-  -DRAI_EIGEN
-  -DRAI_PTHREAD
-  -DRAI_GL
-  -DRAI_GLFW
-  -DRAI_ANN
-  -DRAI_QHULL8
-  -DRAI_ASSIMP
-  -DNO_CYCLE_DETECTION
-  -DRAI_PNG
-  -DRAI_PLY
-  -DRAI_GJK
-  -DRAI_CCD
-  -DRAI_FCL
-  -DRAI_Lewiner
-  -DRAI_VHACD)
+pkg_check_modules(
+  DEPS
+  REQUIRED
+  glfw3
+  glew
+  blas
+  lapack
+  jsoncpp
+  libpng
+  assimp)
+
+if(USE_FREETYPE)
+  find_package(Freetype REQUIRED)
+endif()
+
+if(USE_H5)
+  find_package(HDF5 REQUIRED)
+endif()
 
 # --- Source files ---
 file(
@@ -65,99 +59,92 @@ file(
   "src/Geo/Lewiner/*.cpp")
 
 # --- Library Definition ---
-add_library(raiobjs OBJECT ${RAI_SOURCES})
+add_library(rai SHARED ${RAI_SOURCES})
+set_property(TARGET rai PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-# --- Find Dependencies ---
-find_package(PkgConfig REQUIRED)
-find_package(GLUT REQUIRED)
-find_package(Qhull REQUIRED)
+target_include_directories(
+  rai
+  PUBLIC src
+  PRIVATE $ENV{HOME}/.local/include)
 
-pkg_check_modules(
-  DEPS
-  REQUIRED
-  glfw3
-  glew
-  blas
-  lapack
-  jsoncpp
-  libpng
-  assimp)
+target_link_directories(rai PRIVATE $ENV{HOME}/.local/lib)
 
-include_directories(src $ENV{HOME}/.local/include /usr/include/eigen3)
-link_directories($ENV{HOME}/.local/lib)
+target_compile_options(
+  rai
+  PRIVATE -O3
+          -g
+          -Wall
+          -Wpedantic
+          $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>
+          $<$<COMPILE_LANGUAGE:CXX>:-Wno-terminate>
+          $<$<COMPILE_LANGUAGE:CXX>:-Wno-array-bounds>)
 
-if(USE_PHYSX)
-  link_directories($ENV{HOME}/.local/lib/PhysX)
-endif()
+target_compile_definitions(
+  rai
+  PUBLIC RAI_ROOT_PATH=\"${CMAKE_SOURCE_DIR}\"
+         RAI_X11
+         RAI_LAPACK
+         RAI_EIGEN
+         RAI_PTHREAD
+         RAI_GL
+         RAI_GLFW
+         RAI_ANN
+         RAI_QHULL8
+         RAI_ASSIMP
+         NO_CYCLE_DETECTION
+         RAI_PNG
+         RAI_PLY
+         RAI_GJK
+         RAI_CCD
+         RAI_FCL
+         RAI_Lewiner
+         RAI_VHACD)
 
-set_property(TARGET raiobjs PROPERTY POSITION_INDEPENDENT_CODE ON)
-add_library(rai SHARED $<TARGET_OBJECTS:raiobjs>)
-
-# ##############################################################################
+# --- Link Libraries ---
+target_link_libraries(rai PRIVATE ${DEPS_LIBRARIES} ${GLUT_LIBRARIES} fcl ccd ANN qhull)
 
 if(USE_FREETYPE)
-  find_package(Freetype REQUIRED)
-  add_definitions(-DRAI_FREETYPE)
-  include_directories(rai ${FREETYPE_INCLUDE_DIRS})
-  target_link_libraries(rai PRIVATE ${FREETYPE_LIBRARIES})
+  target_compile_definitions(rai PRIVATE -DRAI_FREETYPE)
+  target_include_directories(rai PUBLIC ${FREETYPE_INCLUDE_DIRS})
+  target_link_libraries(rai PUBLIC ${FREETYPE_LIBRARIES})
   message(STATUS "[rai] using freetype2 libs: " ${FREETYPE_LIBRARIES})
 endif()
 
 if(USE_H5)
-  find_package(HDF5 REQUIRED)
-  add_definitions(-DRAI_H5)
-  include_directories(${HDF5_INCLUDE_DIRS})
-  target_link_libraries(rai PRIVATE hdf5_cpp hdf5 z)
+  target_compile_definitions(rai PRIVATE -DRAI_H5)
+  target_include_directories(rai PUBLIC ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(rai PUBLIC hdf5_cpp hdf5 z)
   message(STATUS "[rai] using H5 libs: hdf5 hdf5_cpp in " ${HDF5_INCLUDE_DIRS})
 endif()
 
 if(USE_PHYSX)
-  add_definitions(-DRAI_PHYSX -DNDEBUG -DPX_DISABLE_FLUIDS -DCORELIB -DPX32
-                  -DLINUX)
-  target_link_libraries(
-    rai
-    PRIVATE PhysXExtensions_static_64 PhysX_static_64 PhysXCooking_static_64
-            PhysXCommon_static_64 PhysXFoundation_static_64)
+  target_link_directories(rai PRIVATE $ENV{HOME}/.local/lib/PhysX)
+  target_compile_definitions(rai PRIVATE -DRAI_PHYSX -DNDEBUG -DPX_DISABLE_FLUIDS -DCORELIB -DPX32 -DLINUX)
+  target_link_libraries(rai PRIVATE PhysXExtensions_static_64 PhysX_static_64 PhysXCooking_static_64 PhysXCommon_static_64 PhysXFoundation_static_64)
   message(STATUS "[rai] using physx libs from ~/.local")
 endif()
 
 if(USE_OPENCV)
-  add_definitions(-DRAI_OPENCV)
-  include_directories($ENV{HOME}/.local/include/opencv4)
-  target_link_libraries(rai PRIVATE opencv_core opencv_highgui opencv_imgproc
-                                    opencv_videoio)
+  target_compile_definitions(rai PRIVATE -DRAI_OPENCV)
+  target_include_directories(rai PUBLIC $ENV{HOME}/.local/include/opencv4)
+  target_link_libraries(rai PUBLIC opencv_core opencv_highgui opencv_imgproc opencv_videoio)
   message(STATUS "[rai] using OpenCV libs from ~/.local")
 endif()
 
-message(STATUS "[rai] pkg-config libraries: " "${DEPS_LIBRARIES}")
-
-# default/required dependencies
-target_link_libraries(rai PRIVATE ${DEPS_LIBRARIES} ${GLUT_LIBRARIES} fcl ccd
-                                  ANN qhull)
-
-# ##############################################################################
-
-get_property(
-  _defs
-  DIRECTORY
-  PROPERTY COMPILE_DEFINITIONS)
-message(STATUS "[rai] compiler flags: " "${_defs}")
-message(STATUS "[rai] source dir: " "${CMAKE_SOURCE_DIR}")
-
-# ##############################################################################
-
+# --- Executable Targets ---
 add_executable(kinEdit bin/src_kinEdit/main.cpp)
 target_link_libraries(kinEdit rai)
 
 add_executable(meshTool bin/src_meshTool/main.cpp)
 target_link_libraries(meshTool rai)
 
+# --- Testing ---
 if(BUILD_TESTS)
   enable_testing()
 
   function(add_rai_test test_name source_file)
     add_executable(${test_name} ${source_file})
-    target_link_libraries(${test_name} ${ARGN})
+    target_link_libraries(${test_name} PRIVATE ${ARGN})
     get_filename_component(test_dir ${source_file} DIRECTORY)
     add_test(
       NAME ${test_name}
@@ -179,12 +166,10 @@ if(BUILD_TESTS)
   add_rai_test(test_convex test/Geo/convex/main.cpp rai qhull)
   add_rai_test(test_PairCollisions test/Geo/PairCollisions/main.cpp rai)
   add_rai_test(test_mesh test/Geo/mesh/main.cpp rai)
-  add_rai_test(test_signedDistanceFunctions
-               test/Geo/signedDistanceFunctions/main.cpp rai)
+  add_rai_test(test_signedDistanceFunctions test/Geo/signedDistanceFunctions/main.cpp rai)
   add_rai_test(test_collisionEngines test/Kin/collisionEngines/main.cpp rai)
   add_rai_test(test_CameraView test/Kin/CameraView/main.cpp rai)
-  add_rai_test(test_pairCollision_jacobians
-               test/Kin/pairCollision_jacobians/main.cpp rai)
+  add_rai_test(test_pairCollision_jacobians test/Kin/pairCollision_jacobians/main.cpp rai)
   add_rai_test(test_features test/Kin/features/main.cpp rai)
   add_rai_test(test_bullet test/Kin/bullet/main.cpp rai)
   add_rai_test(test_simulation test/Kin/simulation/main.cpp rai)
@@ -215,6 +200,7 @@ if(BUILD_TESTS)
   add_rai_test(test_ipopt test/Optim/ipopt/main.cpp rai)
 endif()
 
+# --- Installation ---
 install(
   DIRECTORY src/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/rai
