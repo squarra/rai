@@ -63,3 +63,12 @@ On Fedora I have to change my XDG_SESSION_TYPE
 ```sh
 XDG_SESSION_TYPE=x11 ctest
 ```
+
+## Building for python
+
+```sh
+cmake -B build -DUSE_PYBIND=ON
+cmake --build build -j 6
+cd build
+stubgen -m _robotic -o . --include-docstrings
+```

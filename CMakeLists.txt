@@ -6,10 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # --- Options ---
-option(USE_PHYSX "link to physx" ON)
-option(USE_H5 "link to h5 library" ON)
 option(USE_FREETYPE "link to freetype2 library" ON)
+option(USE_H5 "link to h5 library" ON)
+option(USE_PHYSX "link to physx" ON)
 option(USE_OPENCV "link to opencv" OFF)
+option(USE_PYBIND "build python bindings" OFF)
 option(BUILD_TESTS "build tests" OFF)
 
 # --- Find Dependencies ---
@@ -56,7 +57,9 @@ file(
   "src/Geo/GJK/*.c"
   "src/Geo/ply/*.c"
   "src/Geo/ccd_rai/*.c"
-  "src/Geo/Lewiner/*.cpp")
+  "src/Geo/Lewiner/*.cpp"
+  "src/DataGen/*.cpp"
+  "src/ry/*.cpp")
 
 # --- Library Definition ---
 add_library(rai SHARED ${RAI_SOURCES})
@@ -131,6 +134,17 @@ if(USE_OPENCV)
   message(STATUS "[rai] using OpenCV libs from ~/.local")
 endif()
 
+if(USE_PYBIND)
+  set(PYBIND11_FINDPYTHON ON)
+  find_package(pybind11 CONFIG REQUIRED)
+  target_compile_definitions(rai PRIVATE RAI_PYBIND)
+  target_include_directories(rai PUBLIC ${pybind11_INCLUDE_DIRS})
+  target_link_libraries(rai PUBLIC ${Python_LIBRARIES})
+  pybind11_add_module(_robotic src/ry/module.cpp)
+  target_link_libraries(_robotic PRIVATE rai)
+  install(TARGETS _robotic DESTINATION lib/python)
+endif(USE_PYBIND)
+
 # --- Executable Targets ---
 add_executable(kinEdit bin/src_kinEdit/main.cpp)
 target_link_libraries(kinEdit rai)
@@ -201,12 +215,4 @@ if(BUILD_TESTS)
 endif()
 
 # --- Installation ---
-install(
-  DIRECTORY src/
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/include/rai
-  FILES_MATCHING
-  PATTERN "*.h"
-  PATTERN "*.ipp"
-  PATTERN "*retired*" EXCLUDE)
-
-install(TARGETS kinEdit meshTool DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS kinEdit meshTool DESTINATION bin)
