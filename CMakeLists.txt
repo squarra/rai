@@ -70,6 +70,7 @@ add_library(raiobjs OBJECT ${RAI_SOURCES})
 # --- Find Dependencies ---
 find_package(PkgConfig REQUIRED)
 find_package(GLUT REQUIRED)
+find_package(Qhull REQUIRED)
 
 pkg_check_modules(
   DEPS
@@ -80,8 +81,7 @@ pkg_check_modules(
   lapack
   jsoncpp
   libpng
-  assimp
-  qhull)
+  assimp)
 
 include_directories(src $ENV{HOME}/.local/include /usr/include/eigen3)
 link_directories($ENV{HOME}/.local/lib)
@@ -92,7 +92,6 @@ endif()
 
 set_property(TARGET raiobjs PROPERTY POSITION_INDEPENDENT_CODE ON)
 add_library(rai SHARED $<TARGET_OBJECTS:raiobjs>)
-add_library(rai_static STATIC $<TARGET_OBJECTS:raiobjs>)
 
 # ##############################################################################
 
@@ -134,7 +133,7 @@ message(STATUS "[rai] pkg-config libraries: " "${DEPS_LIBRARIES}")
 
 # default/required dependencies
 target_link_libraries(rai PRIVATE ${DEPS_LIBRARIES} ${GLUT_LIBRARIES} fcl ccd
-                                  ANN)
+                                  ANN qhull)
 
 # ##############################################################################
 
@@ -223,7 +222,5 @@ install(
   PATTERN "*.h"
   PATTERN "*.ipp"
   PATTERN "*retired*" EXCLUDE)
-
-install(TARGETS rai rai_static DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 install(TARGETS kinEdit meshTool DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

@@ -43,21 +43,6 @@ cmake -B build
 cmake --build build -j 6
 ```
 
-You might run into issues with pgkconfig not finding qhull. Clone qhull like it's described in the `install.sh` script and create `/home/pierre/.local/lib/pkgconfig/qhull.pc` with this content: 
-
-```pc
-prefix=/home/pierre/.local
-exec_prefix=${prefix}
-libdir=${exec_prefix}/lib
-includedir=${prefix}/include
-
-Name: qhull
-Description: Qhull library for convex hulls
-Version: 7.3.2
-Libs: -L${libdir} -lqhullstatic
-Cflags: -I${includedir}/libqhull
-```
-
 ## Running tests
 
 - gnuplot is required (sudo dnf install gnuplot)
@@ -69,13 +54,8 @@ Cflags: -I${includedir}/libqhull
 cmake -B build -DBUILD_TESTS=ON
 cmake --build build -j 6
 cd build
-ctest
-```
-
-To run a specific test
-
-```sh
-ctest -R test_name
+ctest # run all tests
+ctest -R test_name # run a specific test
 ```
 
 On Fedora I have to change my XDG_SESSION_TYPE
