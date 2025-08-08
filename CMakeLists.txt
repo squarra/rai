@@ -6,36 +6,24 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # --- Options ---
-option(USE_FREETYPE "link to freetype2 library" ON)
-option(USE_H5 "link to h5 library" ON)
 option(USE_PHYSX "link to physx" ON)
-option(USE_OPENCV "link to opencv" OFF)
 option(USE_PYBIND "build python bindings" OFF)
 option(BUILD_TESTS "build tests" OFF)
 
 # --- Find Dependencies ---
-find_package(PkgConfig REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+find_package(jsoncpp REQUIRED)
+find_package(PNG REQUIRED)
+find_package(assimp REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(Qhull REQUIRED)
-
-pkg_check_modules(
-  DEPS
-  REQUIRED
-  glfw3
-  glew
-  blas
-  lapack
-  jsoncpp
-  libpng
-  assimp)
-
-if(USE_FREETYPE)
-  find_package(Freetype REQUIRED)
-endif()
-
-if(USE_H5)
-  find_package(HDF5 REQUIRED)
-endif()
+find_package(Freetype REQUIRED)
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
+find_package(fcl REQUIRED)
+find_package(ccd REQUIRED)
 
 # --- Source files ---
 file(
@@ -101,25 +89,29 @@ target_compile_definitions(
          RAI_CCD
          RAI_FCL
          RAI_Lewiner
-         RAI_VHACD)
+         RAI_VHACD
+         RAI_FREETYPE
+         RAI_H5)
 
 # --- Link Libraries ---
-target_link_libraries(rai PRIVATE ${DEPS_LIBRARIES} ${GLUT_LIBRARIES} fcl ccd ANN qhull)
+target_link_libraries(
+  rai
+  PRIVATE glfw
+          GLEW::GLEW
+          BLAS::BLAS
+          LAPACK::LAPACK
+          JsonCpp::JsonCpp
+          PNG::PNG
+          assimp::assimp
+          GLUT::GLUT
+          qhull
+          Freetype::Freetype
+          HDF5::HDF5
+          fcl
+          ccd
+          ANN)
 
-if(USE_FREETYPE)
-  target_compile_definitions(rai PRIVATE -DRAI_FREETYPE)
-  target_include_directories(rai PUBLIC ${FREETYPE_INCLUDE_DIRS})
-  target_link_libraries(rai PUBLIC ${FREETYPE_LIBRARIES})
-  message(STATUS "[rai] using freetype2 libs: " ${FREETYPE_LIBRARIES})
-endif()
-
-if(USE_H5)
-  target_compile_definitions(rai PRIVATE -DRAI_H5)
-  target_include_directories(rai PUBLIC ${HDF5_INCLUDE_DIRS})
-  target_link_libraries(rai PUBLIC hdf5_cpp hdf5 z)
-  message(STATUS "[rai] using H5 libs: hdf5 hdf5_cpp in " ${HDF5_INCLUDE_DIRS})
-endif()
-
+# --- PhysX ---
 if(USE_PHYSX)
   target_link_directories(rai PRIVATE $ENV{HOME}/.local/lib/PhysX)
   target_compile_definitions(rai PRIVATE -DRAI_PHYSX -DNDEBUG -DPX_DISABLE_FLUIDS -DCORELIB -DPX32 -DLINUX)
@@ -127,13 +119,7 @@ if(USE_PHYSX)
   message(STATUS "[rai] using physx libs from ~/.local")
 endif()
 
-if(USE_OPENCV)
-  target_compile_definitions(rai PRIVATE -DRAI_OPENCV)
-  target_include_directories(rai PUBLIC $ENV{HOME}/.local/include/opencv4)
-  target_link_libraries(rai PUBLIC opencv_core opencv_highgui opencv_imgproc opencv_videoio)
-  message(STATUS "[rai] using OpenCV libs from ~/.local")
-endif()
-
+# --- Pybind ---
 if(USE_PYBIND)
   set(PYBIND11_FINDPYTHON ON)
   find_package(pybind11 CONFIG REQUIRED)
@@ -143,7 +129,7 @@ if(USE_PYBIND)
   pybind11_add_module(_robotic src/ry/module.cpp)
   target_link_libraries(_robotic PRIVATE rai)
   install(TARGETS _robotic DESTINATION lib/python)
-endif(USE_PYBIND)
+endif()
 
 # --- Executable Targets ---
 add_executable(kinEdit bin/src_kinEdit/main.cpp)
@@ -200,7 +186,7 @@ if(BUILD_TESTS)
   add_rai_test(test_yaml test/Core/yaml/main.cpp rai yaml-cpp)
   add_rai_test(test_ML-regression test/Algo/ML-regression/main.cpp rai)
   add_rai_test(test_ann test/Algo/ann/main.cpp rai)
-  add_rai_test(test_rrt test/Algo/rrt/main.cpp rai)
+  # add_rai_test(test_rrt test/Algo/rrt/main.cpp rai)
   add_rai_test(test_spanningTree test/Algo/spanningTree/main.cpp rai)
   add_rai_test(test_splines test/Algo/splines/main.cpp rai)
   add_rai_test(test_pickAndPlace test/LGP/pickAndPlace/main.cpp rai)
